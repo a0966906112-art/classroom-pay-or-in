@@ -3,208 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>班級點數福利社系統</title>
+    <title>班級點數福利社系統 - 老師端</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            text-align: center; 
-            padding: 20px; 
-            background-color: #f7f9fc;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        h2 { color: #2c3e50; }
-        .card {
-            background: #fff;
-            border: 2px solid #e1e8ed;
-            padding: 25px;
-            margin: 15px auto;
-            border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-        }
-        .btn {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 15px 25px;
-            font-size: 1.2em;
-            border-radius: 10px;
-            cursor: pointer;
-            margin: 10px;
-            font-weight: bold;
-            width: 80%;
-        }
-        .btn:hover { background-color: #2980b9; }
+        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f7f9fc; color: #333; max-width: 600px; margin: 0 auto; }
+        .card { background: #fff; border: 2px solid #e1e8ed; padding: 25px; margin: 15px auto; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .btn { background-color: #3498db; color: white; border: none; padding: 15px 25px; font-size: 1.2em; border-radius: 10px; cursor: pointer; margin: 10px; font-weight: bold; width: 80%; }
         .btn-success { background-color: #2ecc71; }
-        .btn-success:hover { background-color: #27ae60; }
         .btn-danger { background-color: #e74c3c; }
-        .btn-danger:hover { background-color: #c0392b; }
         .btn-warning { background-color: #f39c12; color: white; }
-        .btn-warning:hover { background-color: #d68910; }
-
-        input[type="password"], input[type="number"] {
-            width: 80%;
-            padding: 12px;
-            font-size: 1.2em;
-            text-align: center;
-            border: 2px solid #bdc3c7;
-            border-radius: 8px;
-            margin: 10px 0;
-        }
-
-        #reader { 
-            width: 100%; 
-            max-width: 300px; 
-            margin: 0 auto; 
-            background: #fff; 
-            padding: 10px; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
-        }
+        input[type="password"], input[type="number"] { width: 80%; padding: 12px; font-size: 1.2em; text-align: center; border: 2px solid #bdc3c7; border-radius: 8px; margin: 10px 0; }
+        #teacher-reader { width: 100%; max-width: 300px; margin: 0 auto; background: #fff; padding: 10px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .highlight { color: #e74c3c; font-weight: bold; font-size: 1.2em; }
-        #status-msg { font-size: 1.1em; font-weight: bold; color: #2980b9; margin-top: 15px; }
-        
+        #teacher-status-msg { font-size: 1.1em; font-weight: bold; color: #2980b9; margin-top: 15px; }
         .section-view { display: none; }
     </style>
 </head>
 <body>
 
-    <h2>🏫 班級點數福利社系統</h2>
+    <h2>👩‍🏫 班級點數福利社 - 老師管理後台</h2>
 
-    <!-- 1. 角色選擇首頁 -->
-    <div id="view-home" class="card">
-        <h3>請選擇您的身分</h3>
-        <p style="color: #7f8c8d; margin-bottom: 20px;">請點選下方按鈕進入對應的操作介面</p>
-        <button class="btn btn-success" onclick="showStudentScan()">👨‍🎓 我是學生 (掃描個人卡)</button><br>
-        <button class="btn btn-warning" onclick="showTeacherLogin()">👩‍🏫 我是老師 (後台管理)</button>
+    <!-- 1. 密碼登入 -->
+    <div id="view-teacher-login" class="card">
+        <h3>請輸入管理密碼</h3>
+        <input type="password" id="teacher-pwd" placeholder="預設密碼 1234"><br>
+        <button class="btn btn-success" style="width: auto; padding: 10px 25px;" onclick="verifyTeacherPwd()">登入後台</button>
     </div>
 
-    <!-- 2. 學生專用：掃描個人卡畫面 -->
-    <div id="view-student-scan" class="section-view card">
-        <h3>👨‍🎓 學生登入</h3>
-        <p>請將平板鏡頭對準您的**「個人卡 QR Code」**</p>
-        <div id="reader"></div>
-        <p id="status-msg">正在啟動相機...</p>
-        <button class="btn btn-danger" style="margin-top: 15px; width: auto; padding: 10px 20px;" onclick="goHome()">返回首頁</button>
-    </div>
-
-    <!-- 3. 老師專用：密碼輸入畫面 -->
-    <div id="view-teacher-login" class="section-view card">
-        <h3>👩‍🏫 老師身分驗證</h3>
-        <p>請輸入教師管理密碼</p>
-        <input type="password" id="teacher-pwd" placeholder="請輸入密碼"><br>
-        <button class="btn btn-success" style="width: auto; padding: 10px 25px;" onclick="verifyTeacherPwd()">登入後台</button><br>
-        <button class="btn btn-danger" style="margin-top: 15px; width: auto; padding: 10px 20px;" onclick="goHome()">返回首頁</button>
-    </div>
-
-    <!-- 4. 老師專用：加分/扣分/商品管理後台 -->
+    <!-- 2. 管理後台主畫面 -->
     <div id="view-teacher-dashboard" class="section-view card">
-        <h3>👩‍🏫 老師管理後台</h3>
-        
-        <!-- 頁籤切換 -->
         <div style="margin-bottom: 15px;">
             <button class="btn" style="width: 45%; padding: 10px;" onclick="switchTeacherTab('points')">➕ 老師加減分</button>
             <button class="btn" style="width: 45%; padding: 10px;" onclick="switchTeacherTab('shop')">🏷️ 商品結帳台</button>
         </div>
 
-        <!-- 點數設定區 -->
-        <div id="teacher-panel-points" class="card" style="margin: 5px 0; padding: 15px;">
-            <h4>設定本次點數變動</h4>
+        <div id="teacher-panel-points" class="card" style="padding: 15px;">
+            <h4>設定點數變動</h4>
             <div>
                 <label><input type="radio" name="mode" value="add" checked onclick="setActionType('add')"> ➕ 加分</label>
                 <label style="margin-left: 15px;"><input type="radio" name="mode" value="minus" onclick="setActionType('minus')"> ➖ 扣分</label>
             </div>
             <div style="margin: 10px 0;">
-                <span>數值：</span>
-                <input type="number" id="points-input" value="5" min="1" max="100" style="width: 80px; padding: 5px;">
-                <span>分</span>
+                <span>數值：</span><input type="number" id="points-input" value="5" min="1" max="100" style="width: 80px; padding: 5px;"> 分
             </div>
             <button class="btn btn-success" style="width: auto; padding: 8px 15px;" onclick="lockPointsAction()">鎖定分數，準備掃學生卡</button>
         </div>
 
-        <!-- 商品結帳提示區 -->
-        <div id="teacher-panel-shop" class="card" style="margin: 5px 0; padding: 15px; display: none;">
+        <div id="teacher-panel-shop" class="card" style="padding: 15px; display: none;">
             <h4>福利社商品結帳</h4>
-            <p>目前商品：<span id="selected-item" class="highlight">尚未掃描商品卡</span></p>
-            <p>售價：<span id="item-price" class="highlight">0</span> 點</p>
+            <p>目前商品：<span id="selected-item" class="highlight">尚未掃描商品卡</span> (售價: <span id="item-price">0</span>點)</p>
         </div>
 
-        <!-- 老師相機掃描區 -->
-        <div class="card" style="margin-top: 10px; padding: 15px;">
+        <div class="card" style="padding: 15px;">
             <h4 id="teacher-scan-title">相機掃描區</h4>
-            <div id="teacher-reader" style="width: 100%; max-width: 280px; margin: 0 auto;"></div>
-            <p id="teacher-status-msg">請依照上方模式進行操作...</p>
+            <div id="teacher-reader"></div>
+            <p id="teacher-status-msg">請先完成上方設定或選擇模式...</p>
             <button class="btn btn-danger" id="teacher-reset-btn" style="display: none; width: auto; padding: 8px 15px;" onclick="resetTeacherState()">重新設定</button>
         </div>
 
-        <button class="btn btn-danger" style="margin-top: 15px;" onclick="goHome()">登出返回首頁</button>
+        <button class="btn btn-danger" style="margin-top: 15px;" onclick="location.reload()">登出後台</button>
     </div>
 
     <script>
-        // ⚠️ 請換成你的 Google Apps Script 網頁應用程式網址
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw5g9jkHU4SWHVRjIrCKB1pchidGBFckzc0RPSfqkGkr_uxpi3i3t9z5Lbt-55LDLyZ/exec";
-        const STUDENT_PAGE_BASE_URL = "student.html"; 
-        const TEACHER_PASSWORD = "1234"; // 老師登入密碼
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbztcPAltvBw-gAN3ivRfDzsM5aCdZlOgS70-yANzUR9-B6qS-zShsWUDVsymPlamXVu/exec";
+        const TEACHER_PASSWORD = "1234";
 
-        let studentScanner = null;
         let teacherScanner = null;
-        let currentTeacherMode = "points"; 
-        let actionType = "add";
-        let targetPoints = 5;
-        let currentItem = null;
-        let currentPrice = 0;
-        let isProcessing = false;
-
-        function goHome() {
-            stopAllScanners();
-            document.querySelectorAll('.section-view').forEach(el => el.style.display = 'none');
-            document.getElementById('view-home').style.display = 'block';
-        }
-
-        async function stopAllScanners() {
-            if (studentScanner && studentScanner.isScanning) { await studentScanner.stop().catch(e => {}); }
-            if (teacherScanner && teacherScanner.isScanning) { await teacherScanner.stop().catch(e => {}); }
-        }
-
-        function showStudentScan() {
-            document.getElementById('view-home').style.display = 'none';
-            document.getElementById('view-student-scan').style.display = 'block';
-            document.getElementById('status-msg').innerText = "相機已啟動，請掃描您的個人卡...";
-
-            if (!studentScanner) { studentScanner = new Html5Qrcode("reader"); }
-            studentScanner.start(
-                { facingMode: "environment" },
-                { fps: 10, qrbox: { width: 250, height: 250 } },
-                (decodedText) => {
-                    if (decodedText.startsWith("student:")) {
-                        let studentId = decodedText.split(":")[1];
-                        stopAllScanners();
-                        window.location.href = `${STUDENT_PAGE_BASE_URL}?id=${studentId}`;
-                    } else {
-                        alert("這不是有效的學生個人卡 QR Code 喔！");
-                    }
-                },
-                (err) => {}
-            ).catch(err => { alert("無法啟動相機權限！"); goHome(); });
-        }
-
-        function showTeacherLogin() {
-            document.getElementById('view-home').style.display = 'none';
-            document.getElementById('view-teacher-login').style.display = 'block';
-            document.getElementById('teacher-pwd').value = "";
-        }
+        let currentTeacherMode = "points", actionType = "add", targetPoints = 5;
+        let currentItem = null, currentPrice = 0, isProcessing = false;
 
         function verifyTeacherPwd() {
-            let pwd = document.getElementById('teacher-pwd').value;
-            if (pwd === TEACHER_PASSWORD) {
+            if (document.getElementById('teacher-pwd').value === TEACHER_PASSWORD) {
                 document.getElementById('view-teacher-login').style.display = 'none';
                 document.getElementById('view-teacher-dashboard').style.display = 'block';
                 initTeacherScanner();
-            } else {
-                alert("❌ 密碼錯誤！");
-            }
+            } else { alert("❌ 密碼錯誤！"); }
         }
 
         function switchTeacherTab(mode) {
@@ -217,7 +90,7 @@
             } else {
                 document.getElementById('teacher-panel-points').style.display = 'none';
                 document.getElementById('teacher-panel-shop').style.display = 'block';
-                document.getElementById('teacher-scan-title').innerText = "相機掃描區（可掃商品卡或學生卡）";
+                document.getElementById('teacher-scan-title').innerText = "相機掃描區（請先掃商品卡，再掃學生卡）";
             }
         }
 
@@ -225,10 +98,10 @@
 
         function lockPointsAction() {
             let val = parseInt(document.getElementById("points-input").value, 10);
-            if (isNaN(val) || val <= 0) { alert("請輸入有效的點數！"); return; }
+            if (isNaN(val) || val <= 0) { alert("請輸入有效分數！"); return; }
             targetPoints = val;
             let actionText = (actionType === "add") ? `加 ${targetPoints} 分` : `扣 ${targetPoints} 分`;
-            document.getElementById("teacher-status-msg").innerText = `已鎖定動作：【${actionText}】，請拿學生卡來掃描！`;
+            document.getElementById("teacher-status-msg").innerText = `已鎖定：【${actionText}】，請拿學生卡來掃描！`;
             document.getElementById("teacher-reset-btn").style.display = "inline-block";
         }
 
@@ -239,11 +112,12 @@
                 { fps: 10, qrbox: { width: 220, height: 220 } },
                 onTeacherScanSuccess,
                 (err) => {}
-            ).catch(err => { console.log(err); });
+            ).catch(err => { alert("無法啟動相機！"); });
         }
 
         function onTeacherScanSuccess(decodedText) {
             if (isProcessing) return;
+            decodedText = decodedText.trim();
 
             if (currentTeacherMode === "shop" && decodedText.startsWith("ITEM:")) {
                 let parts = decodedText.split(":");
@@ -251,35 +125,33 @@
                 currentPrice = parseInt(parts[2], 10);
                 document.getElementById("selected-item").innerText = currentItem;
                 document.getElementById("item-price").innerText = currentPrice;
-                document.getElementById("teacher-status-msg").innerText = `已選擇「${currentItem}」(${currentPrice}點)，請接著掃描學生卡！`;
+                document.getElementById("teacher-status-msg").innerText = `已選擇「${currentItem}」(${currentPrice}點)，請接著掃描學生卡結帳！`;
                 document.getElementById("teacher-reset-btn").style.display = "inline-block";
                 return;
             }
 
-            if (decodedText.startsWith("student:")) {
-                let studentId = decodedText.split(":")[1];
-                if (currentTeacherMode === "points") {
-                    isProcessing = true;
-                    let actualPoints = (actionType === "add") ? targetPoints : -targetPoints;
-                    document.getElementById("teacher-status-msg").innerText = `正在為座號 ${studentId} 執行點數變動...`;
-                    sendDataToSheet({ action: "add", studentId: studentId, points: actualPoints }, `✨ 成功！已為座號 ${studentId} 執行變動。`);
-                } else if (currentTeacherMode === "shop" && currentItem) {
-                    isProcessing = true;
-                    document.getElementById("teacher-status-msg").innerText = `正在檢查座號 ${studentId} 點數並結帳...`;
-                    fetch(`${WEB_APP_URL}?id=${studentId}`)
-                        .then(res => res.json())
-                        .then(data => {
-                            if (data.status === "success") {
-                                if (data.points >= currentPrice) {
-                                    sendDataToSheet({ action: "buy", studentId: studentId, item: currentItem, price: currentPrice }, `🎉 結帳成功！座號 ${studentId} 買了「${currentItem}」，扣除 ${currentPrice} 點。`);
-                                } else {
-                                    alert(`❌ 點數不足！座號 ${studentId} 目前只有 ${data.points} 點。`);
-                                    isProcessing = false;
-                                }
-                            } else { alert("讀取學生點數失敗。"); isProcessing = false; }
-                        })
-                        .catch(err => { console.error(err); alert("連線發生錯誤。"); isProcessing = false; });
-                }
+            let studentId = decodedText; // 直接抓取純座號 (例如 "01" 或 "1")
+            if (currentTeacherMode === "points") {
+                isProcessing = true;
+                let actualPoints = (actionType === "add") ? targetPoints : -targetPoints;
+                document.getElementById("teacher-status-msg").innerText = `正在為座號 ${studentId} 執行點數變動...`;
+                sendDataToSheet({ action: "add", studentId: studentId, points: actualPoints }, `✨ 成功！已為座號 ${studentId} 執行變動。`);
+            } else if (currentTeacherMode === "shop" && currentItem) {
+                isProcessing = true;
+                document.getElementById("teacher-status-msg").innerText = `正在檢查座號 ${studentId} 點數並結帳...`;
+                fetch(`${WEB_APP_URL}?id=${studentId}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status === "success") {
+                            if (data.points >= currentPrice) {
+                                sendDataToSheet({ action: "buy", studentId: studentId, item: currentItem, price: currentPrice }, `🎉 結帳成功！座號 ${studentId} 買了「${currentItem}」。`);
+                            } else {
+                                alert(`❌ 點數不足！座號 ${studentId} 目前只有 ${data.points} 點。`);
+                                isProcessing = false;
+                            }
+                        } else { alert("找不到該學生座號分頁。"); isProcessing = false; }
+                    })
+                    .catch(err => { alert("連線發生錯誤。"); isProcessing = false; });
             }
         }
 
@@ -295,8 +167,13 @@
 
         function sendDataToSheet(payload, successMsg) {
             fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(payload) })
-            .then(() => { alert(successMsg); resetTeacherState(); })
-            .catch(error => { console.error(error); alert("交易連線發生錯誤。"); resetTeacherState(); });
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === "success") { alert(successMsg); }
+                else { alert("操作失敗: " + data.message); }
+                resetTeacherState();
+            })
+            .catch(error => { alert("交易連線發生錯誤。"); resetTeacherState(); });
         }
     </script>
 </body>
