@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>班級點數福利社與加分台</title>
+    <!-- 引入開源的 QR Code 掃描庫 -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            text-align: center; 
+            padding: 20px; 
+            background-color: #f7f9fc;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h2 { color: #2c3e50; }
+        /* 相機掃描框容器 */
+        #reader { 
+            width: 100%; 
+            max-width: 320px; 
+            margin: 0 auto; 
+            background: #fff; 
+            padding: 10px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
+        }
+        .box { 
+            background: #fff;
+            border: 2px solid #e1e8ed; 
+            padding: 15px; 
+            margin: 15px auto; 
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .highlight { color: #e74c3c; font-weight: bold; font-size: 1.3em; }
+        #status-msg { font-size: 1.1em; font-weight: bold; color: #2980b9; margin-top: 15px; }
+        .hint-text { font-size: 0.9em; color: #7f8c8d; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+    <h2>🛒 班級點數福利社與加分台</h2>
+    
+    <!-- 狀態顯示區 -->
+    <div class="box">
+        <p>目前選擇動作 / 商品：<br><span id="selected-item" class="highlight">尚未選擇</span></p>
+        <p>數值 / 點數：<span id="item-price" class="highlight">0</span></p>
+    </div>
+
+    <!-- 相機掃描區 -->
+    <div id="reader"></div>
+    <p id="status-msg">請先掃描「加分卡」或「商品卡」</p>
+    <p class="hint-text">（使用手機或平板鏡頭對準 QR Code 即可自動感應）</p>
+
+    <script>
+        // ⚠️ 請記得換成你自己的 Google Apps Script 網頁應用程式部署網址
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwsawLsznKLL132-nBFa_YQM4zmCzSw9nPfV39XLmennJsodZEP5wzHh9JoP0zkZ7iE/exec";
+
+        let currentItem = null;        // 暫存商品名稱
+        let currentPrice = 0;          // 暫存商品價格
+        let currentPointsToAdd = 0;    // 暫存要加的分數
+        let isProcessing = false;      // 防呆：避免連續重複掃描
+
+        // 掃描成功時觸發的函數
+        function onScanSuccess(decodedText, decodedResult) {
+            if (isProcessing) return; // 如果正在處理上一筆，先忽略新的掃描
+            console.log(`掃描結果: ${decodedText}`);
+
+            // 1. 判斷是否為「加分卡」，格式例如: "POINT:5" 或 "POINT:1"
+            if (decodedText.startsWith("POINT:")) {
+                let parts = decodedText.split(":");
+                currentPointsToAdd = parseInt(parts[1], 10);
+                
+                currentItem = null; 
+                currentPrice = 0;
+                
+                document.getElementById("selected-item").innerText = `加分：+${currentPointsToAdd} 點`;
+                document.getElementById("item-price").innerText = `+${currentPointsToAdd}`;
+                document.getElementById("status-msg").innerText = `已選擇「+${currentPointsToAdd}點」，請接著掃描「學生個人卡」！`;
+                
+                triggerFeedback();
+
+            } 
+            // 2. 判斷是否為「商品卡」，格式例如: "ITEM:小熊軟糖:10"
+            else if (decodedText.startsWith("ITEM:")) {
+                let parts = decodedText.split(":");
+                currentItem = parts[1];
+                currentPrice = parseInt(parts[2], 10);
+                
+                currentPointsToAdd = 0; 
+                
+                document.getElementById("selected-item").innerText = currentItem;
+                document.getElementById("item-price").innerText = currentPrice;
+                document.getElementById("status-msg").innerText = `已選擇「${currentItem}」，請接著掃描「學生個人卡」！`;
+                
+                triggerFeedback();
+
+            } 
+            // 3. 判斷是否為「學生個人卡」，格式例如: "student:01"
+            else if (decodedText.startsWith("student:")) {
+                let studentId = decodedText.split(":")[1];
+                
+                if (currentPointsToAdd > 0) {
+                    isProcessing = true;
+                    document.getElementById("status-msg").innerText = `正在為座號 ${studentId} 增加 ${currentPointsToAdd} 點...`;
+                    updatePoints(studentId, currentPointsToAdd);
+                    
+                } else if (currentItem) {
+                    isProcessing = true;
+                    document.getElementById("status-msg").innerText = `正在為座號 ${studentId} 結帳購買 ${currentItem}...`;
+                    checkout(studentId, currentItem, currentPrice);
+                    
+                } else {
+                    alert("請先掃描「加分卡」或「商品卡」喔！");
+                }
+            }
+        }
+
+        // 震動或提示音回饋
+        function triggerFeedback() {
+            if (navigator.vibrate) {
+                navigator.vibrate(200); // 震動 200 毫秒
+            }
+        }
+
+        // 重置畫面與狀態
+        function resetState() {
+            currentItem = null;
+            currentPrice = 0;
+            currentPointsToAdd = 0;
+            isProcessing = false;
+            document.getElementById("selected-item").innerText = "尚未選擇";
+            document.getElementById("item-price").innerText = "0";
+            document.getElementById("status-msg").innerText = "請先掃描「加分卡」或「商品卡」";
+        }
+
+        // 傳送加分資料給 Google 試算表
+        function updatePoints(studentId, points) {
+            fetch(WEB_APP_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "add",
+                    studentId: studentId,
+                    points: points
+                })
+            }).then(() => {
+                alert(`✨ 成功！已為座號 ${studentId} 增加 ${points} 點。`);
+                resetState();
+            }).catch(error => {
+                alert("加分連線發生錯誤，請再試一次。");
+                console.error(error);
+                isProcessing = false;
+            });
+        }
+
+        // 傳送扣款結帳資料給 Google 試算表
+        function checkout(studentId, item, price) {
+            fetch(WEB_APP_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "buy",
+                    studentId: studentId,
+                    item: item,
+                    price: price
+                })
+            }).then(() => {
+                alert(`🎉 結帳成功！座號 ${studentId} 成功購買「${currentItem}」，扣除 ${price} 點。`);
+                resetState();
+            }).catch(error => {
+                alert("結帳連線發生錯誤，請再試一次。");
+                console.error(error);
+                isProcessing = false;
+            });
+        }
+
+        // 初始化相機掃描器
+        let html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", 
+            { 
+                fps: 10,           // 每秒掃描格數
+                qrbox: { width: 250, height: 250 }, // 掃描框大小
+                aspectRatio: 1.0 
+            }, 
+            false
+        );
+        html5QrcodeScanner.render(onScanSuccess, (errorMessage) => {
+            // 忽略一般的掃描未命中錯誤，避免 console 噴一堆紅字
+        });
+    </script>
+</body>
+</html>
