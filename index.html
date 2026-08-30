@@ -51,8 +51,20 @@
       </div>
       <hr>
       <h5 class="text-center">請掃描學生的學生卡 (student:座號)</h5>
-      <div id="teacher-reader" style="width: 100%;" class="mb-3"></div>
-      <div id="teacher-result" class="alert alert-info text-center" style="display:none;"></div>
+      
+      <!-- 老師端掃描器外框 -->
+      <div id="teacher-scanner-wrapper">
+        <div id="teacher-reader" style="width: 100%;" class="mb-3"></div>
+      </div>
+
+      <!-- 處理中提示 -->
+      <div id="teacher-loading" class="alert alert-warning text-center fs-5" style="display:none;">
+        ⏳ <strong>正在更新點數，請稍候...</strong>
+      </div>
+
+      <!-- 執行結果提示 -->
+      <div id="teacher-result" class="alert text-center fs-5" style="display:none;"></div>
+      
       <button class="btn btn-secondary w-100 mt-2" onclick="switchView('home')">返回首頁</button>
     </div>
 
@@ -73,19 +85,16 @@
       
       <hr>
       
-      <!-- 點數載入完成前隱藏，完成後才會顯示的按鈕容器 -->
       <div id="shop-trigger-container" style="display: none;">
         <p class="text-muted">準備好了嗎？請點擊下方按鈕開始掃描商品</p>
         <button class="btn btn-primary btn-lg w-100 mb-3" onclick="openShopScanner()">📷 掃描福利社商品</button>
       </div>
 
-      <!-- 掃描器外框（預設隱藏，點擊按鈕後才展開） -->
       <div id="scanner-wrapper" style="display: none;">
         <h5 class="text-center">請對準「福利社商品卡」</h5>
         <div id="student-shop-reader" style="width: 100%;" class="mb-3"></div>
       </div>
 
-      <!-- 交易處理中的載入提示 -->
       <div id="loading-overlay" class="alert alert-info text-center fs-5" style="display: none;">
         ⏳ <strong>交易處理中，請稍候...</strong><br>請勿退出或重新整理網頁！
       </div>
@@ -157,7 +166,6 @@
         .then(balances => {
           let b = balances[studentId] !== undefined ? balances[studentId] : 0;
           document.getElementById('myBalance').innerText = b;
-          // 關鍵修正：點數成功載入後，強制顯示按鈕容器！
           document.getElementById('shop-trigger-container').style.display = 'block';
         })
         .catch(err => {
@@ -175,10 +183,16 @@
     }
 
     function initTeacherScanner() {
+      document.getElementById('teacher-scanner-wrapper').style.display = 'block';
+      document.getElementById('teacher-loading').style.display = 'none';
       document.getElementById('teacher-result').style.display = 'none';
+
       teacherScanner = new Html5QrcodeScanner("teacher-reader", { fps: 10, qrbox: 250 });
       teacherScanner.render((decodedText) => {
         teacherScanner.clear();
+        document.getElementById('teacher-scanner-wrapper').style.display = 'none';
+        document.getElementById('teacher-loading').style.display = 'block';
+
         if (decodedText.startsWith("student:")) {
           let studentId = decodedText.split(":")[1];
           let actionType = document.getElementById('actionType').value;
@@ -195,19 +209,40 @@
           fetch(GAS_URL, { method: 'POST', body: formData })
             .then(res => res.json())
             .then(res => {
+              document.getElementById('teacher-loading').style.display = 'none';
               let resDiv = document.getElementById('teacher-result');
               resDiv.style.display = 'block';
+
               if(res.success) {
-                resDiv.className = "alert alert-success text-center";
-                resDiv.innerHTML = "成功！座號 " + studentId + " 點數已更新。目前餘額：" + res.newBalance;
+                resDiv.className = "alert alert-success text-center fs-5";
+                resDiv.innerHTML = "✅ 成功！座號 " + studentId + " 點數已更新。<br>目前餘額：" + res.newBalance;
               } else {
-                resDiv.className = "alert alert-danger text-center";
-                resDiv.innerHTML = res.message;
+                resDiv.className = "alert alert-danger text-center fs-5";
+                resDiv.innerHTML = "❌ 失敗：" + res.message;
               }
-              setTimeout(initTeacherScanner, 3000);
+              
+              // 3秒後自動重新開啟相機給下一位學生
+              setTimeout(() => {
+                resDiv.style.display = 'none';
+                initTeacherScanner();
+              }, 4000);
+            })
+            .catch(err => {
+              console.error(err);
+              document.getElementById('teacher-loading').style.display = 'none';
+              let resDiv = document.getElementById('teacher-result');
+              resDiv.style.display = 'block';
+              resDiv.className = "alert alert-danger text-center fs-5";
+              resDiv.innerHTML = "❌ 網路連線錯誤，請重試";
+
+              setTimeout(() => {
+                resDiv.style.display = 'none';
+                initTeacherScanner();
+              }, 3000);
             });
         } else {
-          alert("無效的學生卡 QrCode：" + decodedText);
+          document.getElementById('teacher-loading').style.display = 'none';
+          alert("❌ 這不是有效的學生卡 QrCode：" + decodedText);
           initTeacherScanner();
         }
       }, ()=>{});
