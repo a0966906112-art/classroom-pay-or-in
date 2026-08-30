@@ -64,20 +64,36 @@
       <button class="btn btn-secondary w-100" onclick="switchView('home')">返回首頁</button>
     </div>
 
-    <!-- 學生個人儀表板與購物 -->
-    <div id="view-student_dashboard" class="card p-4 mt-3" style="display:none;">
+   <!-- 學生個人儀表板與購物 -->
+    <div id="view-student_dashboard" class="card p-4 mt-3 text-center" style="display:none;">
       <h3 class="text-success mb-2">🎒 學生專區 (座號：<span id="currentStudentId"></span>)</h3>
       <div class="alert alert-warning text-center fs-4">
         現有點數：<span id="myBalance" class="fw-bold">載入中...</span> 點
       </div>
+      
       <hr>
-      <h5 class="text-center">請掃描「福利社商品卡」結帳</h5>
-      <div id="student-shop-reader" style="width: 100%;" class="mb-3"></div>
+      
+      <!-- 點數載入完成前隱藏，完成後才出現的按鈕 -->
+      <div id="shop-trigger-container" style="display: none;">
+        <p class="text-muted">準備好了嗎？請點擊下方按鈕開始掃描商品</p>
+        <button class="btn btn-primary btn-lg w-100 mb-3" onclick="openShopScanner()">📷 掃描福利社商品</button>
+      </div>
+
+      <!-- 掃描器外框（預設隱藏，點擊按鈕後才展開） -->
+      <div id="scanner-wrapper" style="display: none;">
+        <h5 class="text-center">請對準「福利社商品卡」</h5>
+        <div id="student-shop-reader" style="width: 100%;" class="mb-3"></div>
+      </div>
+
+      <!-- 交易處理中的載入提示（防白癡/防跳出） -->
+      <div id="loading-overlay" class="alert alert-info text-center fs-5" style="display: none;">
+        ⏳ <strong>交易處理中，請稍候...</strong><br>請勿退出或重新整理網頁！
+      </div>
+
       <div id="shop-result" class="alert text-center" style="display:none;"></div>
+      
       <button class="btn btn-outline-secondary w-100 mt-2" onclick="switchView('student_login')">重新登入 / 切換學生</button>
     </div>
-
-  </div>
 
   <script>
     let activeStudentId = '';
