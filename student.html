@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的點數背包</title>
+    <title>我的點數背包與福利社</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
@@ -23,50 +24,93 @@
             border-radius: 12px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.05);
         }
-        .points-num { font-size: 3em; color: #e74c3c; font-weight: bold; margin: 10px 0; }
-        .history-list { text-align: left; max-height: 250px; overflow-y: auto; padding: 0; list-style: none; }
-        .history-item { background: #fdfefe; border-bottom: 1px solid #eee; padding: 10px; font-size: 0.95em; }
-        .history-time { font-size: 0.8em; color: #95a5a6; }
-        .back-btn { 
-            display: inline-block; 
-            margin-top: 20px; 
-            padding: 10px 20px; 
-            background: #3498db; 
-            color: white; 
-            text-decoration: none; 
-            border-radius: 8px; 
-            font-weight: bold; 
+        .points-num { font-size: 3.5em; color: #e74c3c; font-weight: bold; margin: 10px 0; }
+        .btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 1.1em;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px 0;
+            font-weight: bold;
+            width: 100%;
         }
-        .back-btn:hover { background: #2980b9; }
-        #loading { font-size: 1.2em; color: #7f8c8d; margin-top: 40px; }
+        .btn:hover { background-color: #2980b9; }
+        .btn-success { background-color: #2ecc71; }
+        .btn-success:hover { background-color: #27ae60; }
+        .btn-danger { background-color: #e74c3c; }
+        .btn-danger:hover { background-color: #c0392b; }
+
+        #scanner-section, #confirm-section, #success-section { display: none; }
+        
+        #reader { 
+            width: 100%; 
+            max-width: 300px; 
+            margin: 0 auto; 
+            background: #fff; 
+            padding: 10px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
+        }
+        .history-list { text-align: left; max-height: 200px; overflow-y: auto; padding: 0; list-style: none; }
+        .history-item { background: #fdfefe; border-bottom: 1px solid #eee; padding: 10px; font-size: 0.9em; }
+        .history-time { font-size: 0.8em; color: #95a5a6; }
+        .highlight { color: #e74c3c; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <h2 id="title">🎒 我的點數背包</h2>
+    <div id="loading" class="card">正在載入您的點數資料...</div>
 
-    <div id="loading">正在載入您的點數資料...</div>
-
-    <div id="content" style="display: none;">
+    <div id="main-content" style="display: none;">
         <div class="card">
             <p>目前擁有總點數</p>
             <div class="points-num" id="points-display">0</div>
+            <button class="btn btn-success" onclick="openScanner()">🛒 掃描商品代碼購買</button>
         </div>
-
         <div class="card">
-            <h3>📜 近期點數異動紀錄</h3>
+            <h3>📜 我的點數異動紀錄</h3>
             <ul class="history-list" id="history-list"></ul>
         </div>
     </div>
 
-    <a href="index.html" class="back-btn">返回首頁 / 繼續掃描</a>
+    <div id="scanner-section" class="card">
+        <h3>📷 請對準商品 QR Code</h3>
+        <div id="reader"></div>
+        <button class="btn btn-danger" style="margin-top: 15px;" onclick="closeScanner()">取消掃描</button>
+    </div>
+
+    <div id="confirm-section" class="card">
+        <h3>🛒 購物確認</h3>
+        <p>您即將購買：<br><span id="buy-item-name" class="highlight" style="font-size: 1.4em;">商品名稱</span></p>
+        <p>需要花費：<span id="buy-item-price" class="highlight" style="font-size: 1.4em;">0</span> 點</p>
+        <p>您的目前餘額：<span id="buy-my-points">0</span> 點</p>
+        <button class="btn btn-success" onclick="executeBuy()">✅ 確定要購買</button>
+        <button class="btn btn-danger" onclick="cancelBuy()">❌ 取消</button>
+    </div>
+
+    <div id="success-section" class="card" style="background: #e8f8f5; border-color: #27ae60;">
+        <h2 style="color: #27ae60;">🎉 購買成功！</h2>
+        <p style="font-size: 1.2em;">您已成功獲得：<br><b id="success-item-name" style="font-size: 1.5em; color: #2c3e50;">商品名稱</b></p>
+        <p>已扣除點數：<span class="highlight" id="success-item-price">0</span> 點</p>
+        <p>錢包剩餘點數：<b id="success-left-points" style="font-size: 1.2em; color: #27ae60;">0</b> 點</p>
+        <button class="btn" style="background-color: #27ae60; margin-top: 20px;" onclick="location.reload()">返回我的背包</button>
+    </div>
 
     <script>
-        // ⚠️ 請把這裡換成你的 Google Apps Script 網頁應用程式網址
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwOqzf7Z5bVOCgmgrdhB2LYN8If4i4ZU-M-MoSuWpyWlH2crfllm6xROvrcQnvjtycr/exec";
+        // ⚠️ 請換成你的 Google Apps Script 網頁應用程式網址
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxtidzSCDzK8uAaTtmNv9zB2y5OpOu_Di-6VTCIwWY4hRvYKDO6OyRkVAcWAAeVuOnB/exec";
 
         const urlParams = new URLSearchParams(window.location.search);
         const studentId = urlParams.get("id");
+
+        let currentPoints = 0;
+        let pendingItem = "";
+        let pendingPrice = 0;
+        let html5QrCode = null;
 
         if (!studentId) {
             document.getElementById("loading").innerText = "❌ 找不到學生代號，請重新掃描！";
@@ -80,8 +124,8 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === "success") {
-                        document.getElementById("points-display").innerText = data.points;
-                        
+                        currentPoints = data.points;
+                        document.getElementById("points-display").innerText = currentPoints;
                         let historyHtml = "";
                         if (data.history.length === 0) {
                             historyHtml = "<li class='history-item' style='text-align: center; color: #999;'>目前還沒有交易紀錄喔！</li>";
@@ -96,17 +140,76 @@
                             });
                         }
                         document.getElementById("history-list").innerHTML = historyHtml;
-
                         document.getElementById("loading").style.display = "none";
-                        document.getElementById("content").style.display = "block";
+                        document.getElementById("main-content").style.display = "block";
                     } else {
                         document.getElementById("loading").innerText = `❌ 讀取失敗: ${data.message}`;
                     }
                 })
-                .catch(error => {
-                    console.error(error);
-                    document.getElementById("loading").innerText = "❌ 網路連線錯誤，請稍後再試。";
+                .catch(error => { console.error(error); document.getElementById("loading").innerText = "❌ 網路連線錯誤。"; });
+        }
+
+        function openScanner() {
+            document.getElementById("main-content").style.display = "none";
+            document.getElementById("scanner-section").style.display = "block";
+            if (!html5QrCode) { html5QrCode = new Html5Qrcode("reader"); }
+            html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                onScanSuccess,
+                (err) => {}
+            ).catch(err => { alert("無法啟動相機權限！"); closeScanner(); });
+        }
+
+        function closeScanner() {
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().then(() => {
+                    document.getElementById("scanner-section").style.display = "none";
+                    document.getElementById("main-content").style.display = "block";
                 });
+            } else {
+                document.getElementById("scanner-section").style.display = "none";
+                document.getElementById("main-content").style.display = "block";
+            }
+        }
+
+        function onScanSuccess(decodedText) {
+            if (decodedText.startsWith("ITEM:")) {
+                let parts = decodedText.split(":");
+                pendingItem = parts[1];
+                pendingPrice = parseInt(parts[2], 10);
+                html5QrCode.stop().then(() => {
+                    document.getElementById("scanner-section").style.display = "none";
+                    document.getElementById("buy-item-name").innerText = pendingItem;
+                    document.getElementById("buy-item-price").innerText = pendingPrice;
+                    document.getElementById("buy-my-points").innerText = currentPoints;
+                    document.getElementById("confirm-section").style.display = "block";
+                });
+            } else { alert("這不是有效的商品 QR Code 喔！"); }
+        }
+
+        function cancelBuy() {
+            document.getElementById("confirm-section").style.display = "none";
+            document.getElementById("main-content").style.display = "block";
+        }
+
+        function executeBuy() {
+            if (currentPoints < pendingPrice) { alert("❌ 您的點數不足，無法購買此商品！"); cancelBuy(); return; }
+            fetch(WEB_APP_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "buy", studentId: studentId, item: pendingItem, price: pendingPrice })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "success") {
+                    document.getElementById("confirm-section").style.display = "none";
+                    document.getElementById("success-item-name").innerText = pendingItem;
+                    document.getElementById("success-item-price").innerText = pendingPrice;
+                    document.getElementById("success-left-points").innerText = data.newPoints;
+                    document.getElementById("success-section").style.display = "block";
+                } else { alert(`購買失敗: ${data.message}`); cancelBuy(); }
+            })
+            .catch(err => { console.error(err); alert("連線發生錯誤。"); cancelBuy(); });
         }
     </script>
 </body>
