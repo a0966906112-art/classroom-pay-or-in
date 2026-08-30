@@ -53,7 +53,7 @@
 
     <script>
         // ⚠️ 請把這裡換成你的 Google Apps Script 網頁應用程式網址
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzzmhAzioUMfAN7PaCMccjQ_JLBzX4gdYnQ7PlLpGGhMY8OhG0Cfetgb8aFZI2e7ule/exec";
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyD6t-5mLJuEIsqFHPQDiTe7AtEIw--mAOIDOj7v5ivyK0x5nritPwLNiD9yGeJAfp4/exec";
         const STUDENT_PAGE_BASE_URL = "student.html"; 
 
         let currentItem = null;        
@@ -93,12 +93,35 @@
                 if (currentPointsToAdd > 0) {
                     isProcessing = true;
                     document.getElementById("status-msg").innerText = `正在為座號 ${studentId} 增加 ${currentPointsToAdd} 點...`;
-                    updatePoints(studentId, currentPointsToAdd);
+                    sendDataToSheet({ action: "add", studentId: studentId, points: currentPointsToAdd }, `✨ 成功！已為座號 ${studentId} 增加 ${currentPointsToAdd} 點。`);
                     
                 } else if (currentItem) {
                     isProcessing = true;
-                    document.getElementById("status-msg").innerText = `正在為座號 ${studentId} 結帳購買 ${currentItem}...`;
-                    checkout(studentId, currentItem, currentPrice);
+                    document.getElementById("status-msg").innerText = `正在檢查座號 ${studentId} 的點數是否足夠...`;
+                    
+                    // 購買前先向試算表查詢該學生點數，確保夠錢才扣款
+                    fetch(`${WEB_APP_URL}?id=${studentId}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.status === "success") {
+                                if (data.points >= currentPrice) {
+                                    // 點數足夠，執行扣款
+                                    sendDataToSheet({ action: "buy", studentId: studentId, item: currentItem, price: currentPrice }, `🎉 結帳成功！座號 ${studentId} 成功購買「${currentItem}」，扣除 ${currentPrice} 點。`);
+                                } else {
+                                    // 點數不足，攔截！
+                                    alert(`❌ 點數不足！座號 ${studentId} 目前只有 ${data.points} 點，無法購買 ${currentItem}（需 ${currentPrice} 點）。`);
+                                    resetState();
+                                }
+                            } else {
+                                alert("讀取學生點數失敗，請再試一次。");
+                                resetState();
+                            }
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            alert("連線發生錯誤，請再試一次。");
+                            resetState();
+                        });
                     
                 } else {
                     document.getElementById("status-msg").innerText = `正在開啟座號 ${studentId} 的背包...`;
@@ -121,35 +144,19 @@
             document.getElementById("status-msg").innerText = "請先掃描「加分卡」、「商品卡」；或直接掃描學生卡開啟背包！";
         }
 
-        function updatePoints(studentId, points) {
+        function sendDataToSheet(payload, successMessage) {
             fetch(WEB_APP_URL, {
                 method: "POST",
-                mode: "no-cors",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "add", studentId: studentId, points: points })
-            }).then(() => {
-                alert(`✨ 成功！已為座號 ${studentId} 增加 ${points} 點。`);
+                body: JSON.stringify(payload)
+            })
+            .then(() => {
+                alert(successMessage);
                 resetState();
-            }).catch(error => {
-                alert("加分連線發生錯誤，請再試一次。");
+            })
+            .catch(error => {
+                alert("交易連線發生錯誤，請檢查試算表。");
                 console.error(error);
-                isProcessing = false;
-            });
-        }
-
-        function checkout(studentId, item, price) {
-            fetch(WEB_APP_URL, {
-                method: "POST",
-                mode: "no-cors",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "buy", studentId: studentId, item: item, price: price })
-            }).then(() => {
-                alert(`🎉 結帳成功！座號 ${studentId} 成功購買「${currentItem}」，扣除 ${price} 點。`);
                 resetState();
-            }).catch(error => {
-                alert("結帳連線發生錯誤，請再試一次。");
-                console.error(error);
-                isProcessing = false;
             });
         }
 
