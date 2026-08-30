@@ -17,7 +17,7 @@
     // ==========================================
     // 請在這裡確認已填入您的 Google Apps Script 網址
     // ==========================================
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbzVMFCZv4vcAUFHmiRltQY2tz8pZE3aY1waO9duXgjX3_nfZ5RM3PlmApmEBCkawE4R/exec";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbzqAgh-vtmH68CS2SkVC1-xbrACipw61Z4jMPKJHNXlpLRRQGmufk6N67D2oP9TsV9t/exec";
   </script>
 
   <div class="container" style="max-width: 600px;">
@@ -52,17 +52,14 @@
       <hr>
       <h5 class="text-center">請掃描學生的學生卡 (student:座號)</h5>
       
-      <!-- 老師端掃描器外框 -->
       <div id="teacher-scanner-wrapper">
         <div id="teacher-reader" style="width: 100%;" class="mb-3"></div>
       </div>
 
-      <!-- 處理中提示 -->
       <div id="teacher-loading" class="alert alert-warning text-center fs-5" style="display:none;">
         ⏳ <strong>正在更新點數，請稍候...</strong>
       </div>
 
-      <!-- 執行結果提示 -->
       <div id="teacher-result" class="alert text-center fs-5" style="display:none;"></div>
       
       <button class="btn btn-secondary w-100 mt-2" onclick="switchView('home')">返回首頁</button>
@@ -193,8 +190,11 @@
         document.getElementById('teacher-scanner-wrapper').style.display = 'none';
         document.getElementById('teacher-loading').style.display = 'block';
 
-        if (decodedText.startsWith("student:")) {
-          let studentId = decodedText.split(":")[1];
+        // 淨化掃描文字，去除前後空白
+        let cleanText = decodedText ? decodedText.trim() : "";
+
+        if (cleanText.startsWith("student:")) {
+          let studentId = cleanText.split(":")[1].trim();
           let actionType = document.getElementById('actionType').value;
           let points = document.getElementById('points').value;
           let reason = document.getElementById('reason').value || '老師調整';
@@ -217,11 +217,11 @@
                 resDiv.className = "alert alert-success text-center fs-5";
                 resDiv.innerHTML = "✅ 成功！座號 " + studentId + " 點數已更新。<br>目前餘額：" + res.newBalance;
               } else {
+                // 這裡會精確顯示後端傳回來的錯誤訊息（例如：點數不足或找不到分頁）
                 resDiv.className = "alert alert-danger text-center fs-5";
-                resDiv.innerHTML = "❌ 失敗：" + res.message;
+                resDiv.innerHTML = "❌ " + res.message;
               }
               
-              // 3秒後自動重新開啟相機給下一位學生
               setTimeout(() => {
                 resDiv.style.display = 'none';
                 initTeacherScanner();
@@ -242,7 +242,7 @@
             });
         } else {
           document.getElementById('teacher-loading').style.display = 'none';
-          alert("❌ 這不是有效的學生卡 QrCode：" + decodedText);
+          alert("❌ 這不是有效的學生卡 QrCode：" + cleanText);
           initTeacherScanner();
         }
       }, ()=>{});
@@ -251,8 +251,9 @@
     function initLoginScanner() {
       loginScanner = new Html5QrcodeScanner("student-login-reader", { fps: 10, qrbox: 250 });
       loginScanner.render((decodedText) => {
-        if (decodedText.startsWith("student:")) {
-          let studentId = decodedText.split(":")[1];
+        let cleanText = decodedText ? decodedText.trim() : "";
+        if (cleanText.startsWith("student:")) {
+          let studentId = cleanText.split(":")[1].trim();
           switchView('student_dashboard', studentId);
         } else {
           alert("這不是有效的學生個人卡！");
@@ -266,10 +267,11 @@
         shopScanner.clear();
         document.getElementById('scanner-wrapper').style.display = 'none';
         
-        if (decodedText.startsWith("ITEM:")) {
-          let parts = decodedText.split(":");
-          let itemName = parts[1];
-          let itemPrice = parts[2];
+        let cleanText = decodedText ? decodedText.trim() : "";
+        if (cleanText.startsWith("ITEM:")) {
+          let parts = cleanText.split(":");
+          let itemName = parts[1] ? parts[1].trim() : "";
+          let itemPrice = parts[2] ? parts[2].trim() : "";
 
           if(!itemName || !itemPrice) {
             alert("商品卡格式錯誤！");
