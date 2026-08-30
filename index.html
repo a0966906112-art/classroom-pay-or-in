@@ -15,9 +15,9 @@
 <body>
   <script>
     // ==========================================
-    // 請在這裡貼上您從 Google Apps Script 部署取得的網址
+    // 請在這裡確認已填入您的 Google Apps Script 網址
     // ==========================================
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbxKpRflYR1C1iiayQqC7xKmg37-0TzxOINUO80mblnnU6aO4uptwtfdvAIPCKj5e7jx/exec";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbxDkVgD5UO4W7pW8PgGyzr2KBgvD6lREMSCIHVAHaAJeQGuxdedC3Th1txCSz-wvhaA/exec";
   </script>
 
   <div class="container" style="max-width: 600px;">
@@ -64,7 +64,7 @@
       <button class="btn btn-secondary w-100" onclick="switchView('home')">返回首頁</button>
     </div>
 
-   <!-- 學生個人儀表板與購物 -->
+    <!-- 學生個人儀表板與購物 -->
     <div id="view-student_dashboard" class="card p-4 mt-3 text-center" style="display:none;">
       <h3 class="text-success mb-2">🎒 學生專區 (座號：<span id="currentStudentId"></span>)</h3>
       <div class="alert alert-warning text-center fs-4">
@@ -73,7 +73,7 @@
       
       <hr>
       
-      <!-- 點數載入完成前隱藏，完成後才出現的按鈕 -->
+      <!-- 點數載入完成前隱藏，完成後才會顯示的按鈕容器 -->
       <div id="shop-trigger-container" style="display: none;">
         <p class="text-muted">準備好了嗎？請點擊下方按鈕開始掃描商品</p>
         <button class="btn btn-primary btn-lg w-100 mb-3" onclick="openShopScanner()">📷 掃描福利社商品</button>
@@ -85,7 +85,7 @@
         <div id="student-shop-reader" style="width: 100%;" class="mb-3"></div>
       </div>
 
-      <!-- 交易處理中的載入提示（防白癡/防跳出） -->
+      <!-- 交易處理中的載入提示 -->
       <div id="loading-overlay" class="alert alert-info text-center fs-5" style="display: none;">
         ⏳ <strong>交易處理中，請稍候...</strong><br>請勿退出或重新整理網頁！
       </div>
@@ -95,15 +95,15 @@
       <button class="btn btn-outline-secondary w-100 mt-2" onclick="switchView('student_login')">重新登入 / 切換學生</button>
     </div>
 
+  </div>
+
   <script>
     let activeStudentId = '';
     let teacherScanner = null;
     let loginScanner = null;
     let shopScanner = null;
 
-    // 路由切換顯示
     function switchView(mode, param) {
-      // 停止所有相機避免衝突
       stopAllScanners();
 
       document.getElementById('view-home').style.display = 'none';
@@ -124,7 +124,6 @@
         document.getElementById('currentStudentId').innerText = activeStudentId;
         document.getElementById('view-student_dashboard').style.display = 'block';
         loadBalance(activeStudentId);
-        initShopScanner();
       }
     }
 
@@ -134,12 +133,10 @@
       try { if (shopScanner) shopScanner.clear(); } catch(e){}
     }
 
-    // 初始進入判斷網址參數
     window.onload = function() {
       switchView('home');
     };
 
-    // 密碼驗證
     function checkPassword() {
       let pwd = prompt("請輸入老師端管理密碼：");
       if (pwd === "0000") {
@@ -149,21 +146,34 @@
       }
     }
 
-    // 載入學生點數
     function loadBalance(studentId) {
+      document.getElementById('myBalance').innerText = "載入中...";
+      document.getElementById('shop-trigger-container').style.display = 'none';
+      document.getElementById('scanner-wrapper').style.display = 'none';
+      document.getElementById('shop-result').style.display = 'none';
+      
       fetch(`${GAS_URL}?action=getAllStudentsBalance`)
         .then(res => res.json())
         .then(balances => {
           let b = balances[studentId] !== undefined ? balances[studentId] : 0;
           document.getElementById('myBalance').innerText = b;
+          // 關鍵修正：點數成功載入後，強制顯示按鈕容器！
+          document.getElementById('shop-trigger-container').style.display = 'block';
         })
         .catch(err => {
           console.error(err);
           document.getElementById('myBalance').innerText = "讀取失敗";
+          alert("點數載入失敗，請重新登入");
         });
     }
 
-    // 老師端掃描
+    function openShopScanner() {
+      document.getElementById('shop-trigger-container').style.display = 'none';
+      document.getElementById('scanner-wrapper').style.display = 'block';
+      document.getElementById('shop-result').style.display = 'none';
+      initShopScanner();
+    }
+
     function initTeacherScanner() {
       document.getElementById('teacher-result').style.display = 'none';
       teacherScanner = new Html5QrcodeScanner("teacher-reader", { fps: 10, qrbox: 250 });
@@ -203,7 +213,6 @@
       }, ()=>{});
     }
 
-    // 學生登入掃描
     function initLoginScanner() {
       loginScanner = new Html5QrcodeScanner("student-login-reader", { fps: 10, qrbox: 250 });
       loginScanner.render((decodedText) => {
@@ -216,13 +225,11 @@
       }, ()=>{});
     }
 
-    // 學生購物掃描
     function initShopScanner() {
-      document.getElementById('shop-result').style.display = 'none';
       shopScanner = new Html5QrcodeScanner("student-shop-reader", { fps: 10, qrbox: 250 });
       shopScanner.render((decodedText) => {
-        // 暫時停止掃描器，避免重複觸發
         shopScanner.clear();
+        document.getElementById('scanner-wrapper').style.display = 'none';
         
         if (decodedText.startsWith("ITEM:")) {
           let parts = decodedText.split(":");
@@ -231,21 +238,20 @@
 
           if(!itemName || !itemPrice) {
             alert("商品卡格式錯誤！");
-            initShopScanner();
+            document.getElementById('shop-trigger-container').style.display = 'block';
             return;
           }
 
-          // 彈出確認視窗
           let confirmBuy = confirm(`【確認購買】\n\n您確定要花費 ${itemPrice} 點購買「${itemName}」嗎？`);
 
           if (!confirmBuy) {
-            // 如果按取消，就重新啟動掃描器
             alert("已取消購買。");
-            initShopScanner();
+            document.getElementById('shop-trigger-container').style.display = 'block';
             return;
           }
 
-          // 如果按確定，才送出請求扣款
+          document.getElementById('loading-overlay').style.display = 'block';
+
           let formData = new URLSearchParams();
           formData.append('action', 'studentCheckout');
           formData.append('studentId', activeStudentId);
@@ -255,6 +261,8 @@
           fetch(GAS_URL, { method: 'POST', body: formData })
             .then(res => res.json())
             .then(res => {
+              document.getElementById('loading-overlay').style.display = 'none';
+              
               let resDiv = document.getElementById('shop-result');
               resDiv.style.display = 'block';
               if(res.success) {
@@ -265,17 +273,22 @@
                 resDiv.className = "alert alert-danger text-center fs-5";
                 resDiv.innerHTML = "❌ " + res.message;
               }
-              setTimeout(initShopScanner, 4000);
+              
+              setTimeout(() => {
+                resDiv.style.display = 'none';
+                document.getElementById('shop-trigger-container').style.display = 'block';
+              }, 4000);
             })
             .catch(err => {
               console.error(err);
+              document.getElementById('loading-overlay').style.display = 'none';
               alert("連線發生錯誤，請重試");
-              initShopScanner();
+              document.getElementById('shop-trigger-container').style.display = 'block';
             });
 
         } else {
           alert("這不是有效的商品卡片！");
-          initShopScanner();
+          document.getElementById('shop-trigger-container').style.display = 'block';
         }
       }, ()=>{});
     }
