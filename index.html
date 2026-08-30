@@ -98,6 +98,11 @@
 
       <div id="shop-result" class="alert text-center" style="display:none;"></div>
       
+      <!-- 購買成功後顯示的確認按鈕，點擊後才會重置畫面 -->
+      <div id="success-confirm-container" style="display: none;" class="mb-3">
+        <button class="btn btn-success btn-lg w-100 py-3 fs-4 shadow" onclick="resetShopScreen()">✅ 老師已確認，完成交易</button>
+      </div>
+
       <button class="btn btn-outline-secondary w-100 mt-2" onclick="switchView('student_login')">重新登入 / 切換學生</button>
     </div>
 
@@ -157,6 +162,7 @@
       document.getElementById('shop-trigger-container').style.display = 'none';
       document.getElementById('scanner-wrapper').style.display = 'none';
       document.getElementById('shop-result').style.display = 'none';
+      document.getElementById('success-confirm-container').style.display = 'none';
       
       fetch(`${GAS_URL}?action=getAllStudentsBalance`)
         .then(res => res.json())
@@ -176,7 +182,15 @@
       document.getElementById('shop-trigger-container').style.display = 'none';
       document.getElementById('scanner-wrapper').style.display = 'block';
       document.getElementById('shop-result').style.display = 'none';
+      document.getElementById('success-confirm-container').style.display = 'none';
       initShopScanner();
+    }
+
+    // 點擊「老師已確認」按鈕後觸發
+    function resetShopScreen() {
+      document.getElementById('shop-result').style.display = 'none';
+      document.getElementById('success-confirm-container').style.display = 'none';
+      document.getElementById('shop-trigger-container').style.display = 'block';
     }
 
     function initTeacherScanner() {
@@ -190,7 +204,6 @@
         document.getElementById('teacher-scanner-wrapper').style.display = 'none';
         document.getElementById('teacher-loading').style.display = 'block';
 
-        // 淨化掃描文字，去除前後空白
         let cleanText = decodedText ? decodedText.trim() : "";
 
         if (cleanText.startsWith("student:")) {
@@ -217,7 +230,6 @@
                 resDiv.className = "alert alert-success text-center fs-5";
                 resDiv.innerHTML = "✅ 成功！座號 " + studentId + " 點數已更新。<br>目前餘額：" + res.newBalance;
               } else {
-                // 這裡會精確顯示後端傳回來的錯誤訊息（例如：點數不足或找不到分頁）
                 resDiv.className = "alert alert-danger text-center fs-5";
                 resDiv.innerHTML = "❌ " + res.message;
               }
@@ -302,19 +314,24 @@
               
               let resDiv = document.getElementById('shop-result');
               resDiv.style.display = 'block';
+
               if(res.success) {
                 resDiv.className = "alert alert-success text-center fs-5";
                 resDiv.innerHTML = "🎉 " + res.message + "<br>剩餘點數：" + res.newBalance;
                 document.getElementById('myBalance').innerText = res.newBalance;
+                
+                // 購買成功：顯示「老師已確認」的大按鈕，畫面停在這裡不自動跳掉
+                document.getElementById('success-confirm-container').style.display = 'block';
               } else {
                 resDiv.className = "alert alert-danger text-center fs-5";
                 resDiv.innerHTML = "❌ " + res.message;
+                
+                // 失敗的話 4 秒後自動讓學生重新掃描
+                setTimeout(() => {
+                  resDiv.style.display = 'none';
+                  document.getElementById('shop-trigger-container').style.display = 'block';
+                }, 4000);
               }
-              
-              setTimeout(() => {
-                resDiv.style.display = 'none';
-                document.getElementById('shop-trigger-container').style.display = 'block';
-              }, 4000);
             })
             .catch(err => {
               console.error(err);
