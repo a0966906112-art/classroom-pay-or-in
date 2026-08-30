@@ -6,54 +6,14 @@
     <title>我的點數背包與福利社</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            text-align: center; 
-            padding: 20px; 
-            background-color: #f7f9fc;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        h2 { color: #2c3e50; }
-        .card { 
-            background: #fff;
-            border: 2px solid #e1e8ed; 
-            padding: 20px; 
-            margin: 15px auto; 
-            border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-        }
+        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f7f9fc; color: #333; max-width: 600px; margin: 0 auto; }
+        .card { background: #fff; border: 2px solid #e1e8ed; padding: 20px; margin: 15px auto; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         .points-num { font-size: 3.5em; color: #e74c3c; font-weight: bold; margin: 10px 0; }
-        .btn {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            font-size: 1.1em;
-            border-radius: 8px;
-            cursor: pointer;
-            margin: 10px 0;
-            font-weight: bold;
-            width: 100%;
-        }
-        .btn:hover { background-color: #2980b9; }
+        .btn { background-color: #3498db; color: white; border: none; padding: 12px 20px; font-size: 1.1em; border-radius: 8px; cursor: pointer; margin: 10px 0; font-weight: bold; width: 100%; }
         .btn-success { background-color: #2ecc71; }
-        .btn-success:hover { background-color: #27ae60; }
         .btn-danger { background-color: #e74c3c; }
-        .btn-danger:hover { background-color: #c0392b; }
-
         #scanner-section, #confirm-section, #success-section { display: none; }
-        
-        #reader { 
-            width: 100%; 
-            max-width: 300px; 
-            margin: 0 auto; 
-            background: #fff; 
-            padding: 10px; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
-        }
+        #reader { width: 100%; max-width: 300px; margin: 0 auto; background: #fff; padding: 10px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .history-list { text-align: left; max-height: 200px; overflow-y: auto; padding: 0; list-style: none; }
         .history-item { background: #fdfefe; border-bottom: 1px solid #eee; padding: 10px; font-size: 0.9em; }
         .history-time { font-size: 0.8em; color: #95a5a6; }
@@ -85,32 +45,26 @@
 
     <div id="confirm-section" class="card">
         <h3>🛒 購物確認</h3>
-        <p>您即將購買：<br><span id="buy-item-name" class="highlight" style="font-size: 1.4em;">商品名稱</span></p>
+        <p>您即將購買：<br><span id="buy-item-name" class="highlight" style="font-size: 1.4em;"></span></p>
         <p>需要花費：<span id="buy-item-price" class="highlight" style="font-size: 1.4em;">0</span> 點</p>
-        <p>您的目前餘額：<span id="buy-my-points">0</span> 點</p>
         <button class="btn btn-success" onclick="executeBuy()">✅ 確定要購買</button>
         <button class="btn btn-danger" onclick="cancelBuy()">❌ 取消</button>
     </div>
 
     <div id="success-section" class="card" style="background: #e8f8f5; border-color: #27ae60;">
         <h2 style="color: #27ae60;">🎉 購買成功！</h2>
-        <p style="font-size: 1.2em;">您已成功獲得：<br><b id="success-item-name" style="font-size: 1.5em; color: #2c3e50;">商品名稱</b></p>
-        <p>已扣除點數：<span class="highlight" id="success-item-price">0</span> 點</p>
-        <p>錢包剩餘點數：<b id="success-left-points" style="font-size: 1.2em; color: #27ae60;">0</b> 點</p>
-        <button class="btn" style="background-color: #27ae60; margin-top: 20px;" onclick="location.reload()">返回我的背包</button>
+        <p style="font-size: 1.2em;">已獲得：<b id="success-item-name" style="font-size: 1.3em;"></b></p>
+        <p>錢包剩餘點數：<b id="success-left-points" style="font-size: 1.5em; color: #27ae60;">0</b> 點</p>
+        <button class="btn btn-success" style="margin-top: 20px;" onclick="location.reload()">返回我的背包</button>
     </div>
 
     <script>
-        // ⚠️ 請換成你的 Google Apps Script 網頁應用程式網址
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw5g9jkHU4SWHVRjIrCKB1pchidGBFckzc0RPSfqkGkr_uxpi3i3t9z5Lbt-55LDLyZ/exec";
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbztcPAltvBw-gAN3ivRfDzsM5aCdZlOgS70-yANzUR9-B6qS-zShsWUDVsymPlamXVu/exec";
 
         const urlParams = new URLSearchParams(window.location.search);
         const studentId = urlParams.get("id");
 
-        let currentPoints = 0;
-        let pendingItem = "";
-        let pendingPrice = 0;
-        let html5QrCode = null;
+        let currentPoints = 0, pendingItem = "", pendingPrice = 0, html5QrCode = null;
 
         if (!studentId) {
             document.getElementById("loading").innerText = "❌ 找不到學生代號，請重新掃描！";
@@ -121,7 +75,7 @@
 
         function fetchStudentData(id) {
             fetch(`${WEB_APP_URL}?id=${id}`)
-                .then(response => response.json())
+                .then(res => res.json())
                 .then(data => {
                     if (data.status === "success") {
                         currentPoints = data.points;
@@ -143,10 +97,10 @@
                         document.getElementById("loading").style.display = "none";
                         document.getElementById("main-content").style.display = "block";
                     } else {
-                        document.getElementById("loading").innerText = `❌ 讀取失敗: ${data.message}`;
+                        document.getElementById("loading").innerText = `❌ 查無此學生分頁（${id}）。`;
                     }
                 })
-                .catch(error => { console.error(error); document.getElementById("loading").innerText = "❌ 網路連線錯誤。"; });
+                .catch(err => { document.getElementById("loading").innerText = "❌ 網路連線錯誤。"; });
         }
 
         function openScanner() {
@@ -156,7 +110,20 @@
             html5QrCode.start(
                 { facingMode: "environment" },
                 { fps: 10, qrbox: { width: 250, height: 250 } },
-                onScanSuccess,
+                (decodedText) => {
+                    decodedText = decodedText.trim();
+                    if (decodedText.startsWith("ITEM:")) {
+                        let parts = decodedText.split(":");
+                        pendingItem = parts[1];
+                        pendingPrice = parseInt(parts[2], 10);
+                        html5QrCode.stop().then(() => {
+                            document.getElementById("scanner-section").style.display = "none";
+                            document.getElementById("buy-item-name").innerText = pendingItem;
+                            document.getElementById("buy-item-price").innerText = pendingPrice;
+                            document.getElementById("confirm-section").style.display = "block";
+                        });
+                    } else { alert("這不是有效的商品 QR Code 喔！"); }
+                },
                 (err) => {}
             ).catch(err => { alert("無法啟動相機權限！"); closeScanner(); });
         }
@@ -173,28 +140,13 @@
             }
         }
 
-        function onScanSuccess(decodedText) {
-            if (decodedText.startsWith("ITEM:")) {
-                let parts = decodedText.split(":");
-                pendingItem = parts[1];
-                pendingPrice = parseInt(parts[2], 10);
-                html5QrCode.stop().then(() => {
-                    document.getElementById("scanner-section").style.display = "none";
-                    document.getElementById("buy-item-name").innerText = pendingItem;
-                    document.getElementById("buy-item-price").innerText = pendingPrice;
-                    document.getElementById("buy-my-points").innerText = currentPoints;
-                    document.getElementById("confirm-section").style.display = "block";
-                });
-            } else { alert("這不是有效的商品 QR Code 喔！"); }
-        }
-
         function cancelBuy() {
             document.getElementById("confirm-section").style.display = "none";
             document.getElementById("main-content").style.display = "block";
         }
 
         function executeBuy() {
-            if (currentPoints < pendingPrice) { alert("❌ 您的點數不足，無法購買此商品！"); cancelBuy(); return; }
+            if (currentPoints < pendingPrice) { alert("❌ 您的點數不足！"); cancelBuy(); return; }
             fetch(WEB_APP_URL, {
                 method: "POST",
                 body: JSON.stringify({ action: "buy", studentId: studentId, item: pendingItem, price: pendingPrice })
@@ -204,12 +156,11 @@
                 if (data.status === "success") {
                     document.getElementById("confirm-section").style.display = "none";
                     document.getElementById("success-item-name").innerText = pendingItem;
-                    document.getElementById("success-item-price").innerText = pendingPrice;
                     document.getElementById("success-left-points").innerText = data.newPoints;
                     document.getElementById("success-section").style.display = "block";
                 } else { alert(`購買失敗: ${data.message}`); cancelBuy(); }
             })
-            .catch(err => { console.error(err); alert("連線發生錯誤。"); cancelBuy(); });
+            .catch(err => { alert("連線發生錯誤。"); cancelBuy(); });
         }
     </script>
 </body>
