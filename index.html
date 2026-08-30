@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>班級點數福利社與加分台</title>
+    <title>班級點數福利社與個人背包</title>
     <!-- 引入開源的 QR Code 掃描庫 -->
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
@@ -52,12 +52,16 @@
 
     <!-- 相機掃描區 -->
     <div id="reader"></div>
-    <p id="status-msg">請先掃描「加分卡」或「商品卡」</p>
+    <p id="status-msg">請先掃描「加分卡」、「商品卡」；或直接掃描學生卡開啟背包！</p>
     <p class="hint-text">（使用手機或平板鏡頭對準 QR Code 即可自動感應）</p>
 
     <script>
-        // ⚠️ 請記得換成你自己的 Google Apps Script 網頁應用程式部署網址
+        // ⚠️ 1. 請記得換成你自己的 Google Apps Script 網頁應用程式部署網址
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwsawLsznKLL132-nBFa_YQM4zmCzSw9nPfV39XLmennJsodZEP5wzHh9JoP0zkZ7iE/exec";
+
+        // ⚠️ 2. 請設定你的學生個人背包網頁網址（例如 student.html，或是你的完整 GitHub Pages 網址）
+        // 若跟這支程式放在同一個資料夾，直接寫檔名即可；若有完整網址則填入完整的 https://...
+        const STUDENT_PAGE_BASE_URL = "student.html"; 
 
         let currentItem = null;        // 暫存商品名稱
         let currentPrice = 0;          // 暫存商品價格
@@ -104,17 +108,26 @@
                 let studentId = decodedText.split(":")[1];
                 
                 if (currentPointsToAdd > 0) {
+                    // 狀況 A：老師剛剛有先刷「加分卡」，現在要幫他加分
                     isProcessing = true;
                     document.getElementById("status-msg").innerText = `正在為座號 ${studentId} 增加 ${currentPointsToAdd} 點...`;
                     updatePoints(studentId, currentPointsToAdd);
                     
                 } else if (currentItem) {
+                    // 狀況 B：老師剛剛有先刷「商品卡」，現在要幫他結帳扣款
                     isProcessing = true;
                     document.getElementById("status-msg").innerText = `正在為座號 ${studentId} 結帳購買 ${currentItem}...`;
                     checkout(studentId, currentItem, currentPrice);
                     
                 } else {
-                    alert("請先掃描「加分卡」或「商品卡」喔！");
+                    // 狀況 C：老師什麼都沒選（沒刷加分也沒刷商品），直接帶他進入自己的背包/個人頁面！
+                    document.getElementById("status-msg").innerText = `正在開啟座號 ${studentId} 的背包...`;
+                    
+                    // 組合個人頁面網址（帶入座號參數，例如 student.html?id=01）
+                    let personalPageUrl = `${STUDENT_PAGE_BASE_URL}?id=${studentId}`;
+                    
+                    // 立即跳轉至該學生的個人頁面
+                    window.location.href = personalPageUrl;
                 }
             }
         }
@@ -134,7 +147,7 @@
             isProcessing = false;
             document.getElementById("selected-item").innerText = "尚未選擇";
             document.getElementById("item-price").innerText = "0";
-            document.getElementById("status-msg").innerText = "請先掃描「加分卡」或「商品卡」";
+            document.getElementById("status-msg").innerText = "請先掃描「加分卡」、「商品卡」；或直接掃描學生卡開啟背包！";
         }
 
         // 傳送加分資料給 Google 試算表
