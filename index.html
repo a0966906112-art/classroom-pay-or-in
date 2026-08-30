@@ -205,7 +205,9 @@
       document.getElementById('shop-result').style.display = 'none';
       shopScanner = new Html5QrcodeScanner("student-shop-reader", { fps: 10, qrbox: 250 });
       shopScanner.render((decodedText) => {
+        // 暫時停止掃描器，避免重複觸發
         shopScanner.clear();
+        
         if (decodedText.startsWith("ITEM:")) {
           let parts = decodedText.split(":");
           let itemName = parts[1];
@@ -217,6 +219,17 @@
             return;
           }
 
+          // 彈出確認視窗
+          let confirmBuy = confirm(`【確認購買】\n\n您確定要花費 ${itemPrice} 點購買「${itemName}」嗎？`);
+
+          if (!confirmBuy) {
+            // 如果按取消，就重新啟動掃描器
+            alert("已取消購買。");
+            initShopScanner();
+            return;
+          }
+
+          // 如果按確定，才送出請求扣款
           let formData = new URLSearchParams();
           formData.append('action', 'studentCheckout');
           formData.append('studentId', activeStudentId);
@@ -237,7 +250,13 @@
                 resDiv.innerHTML = "❌ " + res.message;
               }
               setTimeout(initShopScanner, 4000);
+            })
+            .catch(err => {
+              console.error(err);
+              alert("連線發生錯誤，請重試");
+              initShopScanner();
             });
+
         } else {
           alert("這不是有效的商品卡片！");
           initShopScanner();
