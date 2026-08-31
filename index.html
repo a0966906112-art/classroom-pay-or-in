@@ -24,7 +24,7 @@
     
     <!-- 首頁 -->
     <div id="view-home" class="card p-4 text-center mt-5" style="display:none;">
-      <h2 class="mb-4 text-primary">🏫 班級點數福利社系統</h2>
+      <h2 class="mb-4 text-primary">🏫 班級點數系統</h2>
       <div class="d-grid gap-3 col-8 mx-auto">
         <button class="btn btn-danger btn-lg" onclick="checkPassword()">進入老師端</button>
         <button class="btn btn-success btn-lg" onclick="switchView('student_login')">進入學生端</button>
@@ -84,11 +84,11 @@
       
       <div id="shop-trigger-container" style="display: none;">
         <p class="text-muted">準備好了嗎？請點擊下方按鈕開始掃描商品</p>
-        <button class="btn btn-primary btn-lg w-100 mb-3" onclick="openShopScanner()">📷 掃描福利社商品</button>
+        <button class="btn btn-primary btn-lg w-100 mb-3" onclick="openShopScanner()">📷 掃描商品卡</button>
       </div>
 
       <div id="scanner-wrapper" style="display: none;">
-        <h5 class="text-center">請對準「福利社商品卡」</h5>
+        <h5 class="text-center">請對準「商品卡Qrcode」</h5>
         <div id="student-shop-reader" style="width: 100%;" class="mb-3"></div>
       </div>
 
